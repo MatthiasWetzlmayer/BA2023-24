@@ -1,5 +1,5 @@
 resource "aws_api_gateway_method" "post_method" {
-  rest_api_id   = aws_api_gateway_rest_api.MyApiGatewayRestApi.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.sensor.id
   http_method   = "POST"
   authorization = "COGNITO_USER_POOLS"
@@ -7,7 +7,7 @@ resource "aws_api_gateway_method" "post_method" {
 }
 
 resource "aws_api_gateway_integration" "lambda_post_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.MyApiGatewayRestApi.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.sensor.id
   http_method             = aws_api_gateway_method.post_method.http_method
   integration_http_method = "POST"

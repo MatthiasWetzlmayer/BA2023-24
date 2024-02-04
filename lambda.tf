@@ -42,7 +42,10 @@ resource "aws_iam_policy" "lambda_policy" {
 
       ],
       "Resource" : [ "${aws_dynamodb_table.sensor_table.arn}",
-      "${aws_dynamodb_table.sensor_table.arn}/index/*" ]
+                     "${aws_dynamodb_table.sensor_table.arn}/index/*" ,
+                     "${aws_dynamodb_table.sensor_data_table.arn}",
+                     "${aws_dynamodb_table.sensor_data_table.arn}/index/*" 
+      ]
     }
   ]
 }

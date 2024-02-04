@@ -1,5 +1,5 @@
 resource "aws_api_gateway_method" "get_method" {
-  rest_api_id   = aws_api_gateway_rest_api.MyApiGatewayRestApi.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.sensor.id
   http_method   = "GET"
   authorization = "COGNITO_USER_POOLS"
@@ -8,22 +8,22 @@ resource "aws_api_gateway_method" "get_method" {
 
 
 resource "aws_api_gateway_integration" "get_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.MyApiGatewayRestApi.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.sensor.id
   http_method             = aws_api_gateway_method.get_method.http_method
   integration_http_method = "POST"
   type                    = "AWS"
-  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:dynamodb:action/Query" # Verweisen Sie auf Ihre Lambda-Funktion
+  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:dynamodb:action/Query" 
   credentials             = aws_iam_role.api_gateway_execution_role.arn
   request_templates = {
     "application/json" = <<EOF
-    {
+       {
       "TableName": "sensor-table",
       "IndexName": "sub-gsi",
       "KeyConditionExpression": "sub_string = :val",
       "ExpressionAttributeValues": {
         ":val": {
-          "S": "fe409090-a5c5-40cc-8d40-d044ad5920eb"
+          "S": "$context.authorizer.claims.sub"
         }
       }
     }
@@ -33,7 +33,7 @@ resource "aws_api_gateway_integration" "get_integration" {
 }
 
 resource "aws_api_gateway_integration_response" "get_integration_response" {
-  rest_api_id             = aws_api_gateway_rest_api.MyApiGatewayRestApi.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.sensor.id
   http_method             = aws_api_gateway_method.get_method.http_method
   status_code             = 200
@@ -42,18 +42,16 @@ resource "aws_api_gateway_integration_response" "get_integration_response" {
   response_templates = {
     "application/json" = <<EOF
     #set($inputRoot = $input.path('$'))
-    "items": [
-      #foreach($field in $inputRoot.Items){
-        "id": "$field.id.S",
-        "name": "$field.name.S",
-        "template": "$field.template.S"
-        #if($foreach.hasNext),#end
-      }
+    [
+      #foreach($item in $inputRoot.Items)
+        {
+          "sensor_name": "$item.sensor_name.S",
+          "template": "$item.template.S"
+        }#if($foreach.hasNext),#end
+      #end
     ]
-
     EOF
   }
-#        "#set($inputRoot = $input.path('$'))\n{\n\t\"pets\": [\n\t\t#foreach($field in $inputRoot.Items) {\n\t\t\t\"id\": \"$field.id.S\"}#if($foreach.hasNext),#end\n\t\t#end\n\t]\n}"
 
 
   depends_on = [
@@ -61,8 +59,8 @@ resource "aws_api_gateway_integration_response" "get_integration_response" {
   ]
 }
 
-resource "aws_api_gateway_method_response" "example" {
-  rest_api_id             = aws_api_gateway_rest_api.MyApiGatewayRestApi.id
+resource "aws_api_gateway_method_response" "get_response" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.sensor.id
   http_method             = aws_api_gateway_method.get_method.http_method
   status_code = aws_api_gateway_integration_response.get_integration_response.status_code

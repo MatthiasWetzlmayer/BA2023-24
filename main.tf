@@ -61,9 +61,9 @@ resource "aws_iam_role_policy_attachment" "APIGWPolicyAttachment" {
 resource "aws_dynamodb_table" "sensor_table" {
   name           = "sensor-table"
   billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "id"
+  hash_key       = "sensor_name"
   attribute {
-    name = "id"
+    name = "sensor_name"
     type = "S"
   }
   attribute {
@@ -79,18 +79,40 @@ resource "aws_dynamodb_table" "sensor_table" {
   }
 }
 
-resource "aws_api_gateway_rest_api" "MyApiGatewayRestApi" {
+
+resource "aws_dynamodb_table" "sensor_data_table" {
+  name           = "sensor-data-table"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "id"
+  attribute {
+    name = "id"
+    type = "S"
+  }
+  attribute {
+    name = "sensor_name"
+    type= "S"
+  }
+  global_secondary_index {
+    name               = "name-gsi"
+    hash_key           = "sensor_name" # Ändern Sie dies entsprechend Ihrem Attributnamen
+    projection_type    = "ALL"      # Ändern Sie dies entsprechend Ihren Anforderungen (z.B. "INCLUDE" für spezifische Attribute)
+    read_capacity      = 5
+    write_capacity     = 5
+  }
+}
+
+resource "aws_api_gateway_rest_api" "api" {
   name = "APIGW DynamoDB Serverless Pattern Demo"
 }
 
 resource "aws_api_gateway_resource" "sensor" {
-  rest_api_id = aws_api_gateway_rest_api.MyApiGatewayRestApi.id
-  parent_id   = aws_api_gateway_rest_api.MyApiGatewayRestApi.root_resource_id
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
   path_part   = "sensor"
 }
 
 resource "aws_api_gateway_resource" "id" {
-  rest_api_id = aws_api_gateway_rest_api.MyApiGatewayRestApi.id
+  rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_resource.sensor.id
   path_part   = "{id}"
 }
